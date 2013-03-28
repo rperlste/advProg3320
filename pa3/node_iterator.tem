@@ -1,0 +1,53 @@
+template <typename T>
+fw_node_iterator<T>::fw_node_iterator(){
+    cursor = 0;
+}
+
+template <typename T>
+fw_node_iterator<T>::fw_node_iterator( node* nPtr ){
+    cursor = nPtr;
+}
+
+template <typename T>
+fw_node_iterator<T>::fw_node_iterator( const fw_node_iterator<T>& it ){
+    this->cursor = it.cursor;
+}
+
+template <typename T>
+void fw_node_iterator<T>::operator = ( const fw_node_iterator<T>& it ){
+    this->cursor = it.cursor;
+}
+
+template <typename T>
+bool fw_node_iterator<T>::operator == ( const fw_node_iterator<T>& it ) const {
+    return ( this->cursor == it.cursor );
+}
+
+template <typename T>
+bool fw_node_iterator<T>::operator != ( const fw_node_iterator<T>& it ) const {
+    return ( this->cursor != it.cursor );
+}
+
+template <typename T>
+T& fw_node_iterator<T>::operator * () const {
+    return cursor->data;
+}
+
+template <typename T>
+typename fw_node_iterator<T>::node* fw_node_iterator<T>::operator -> () const {
+    return cursor;
+}
+
+template <typename T>
+void fw_node_iterator<T>::operator ++ () {
+    if ( cursor != 0 ){
+        cursor = cursor->link;
+    }
+}
+
+template <typename T>
+void fw_node_iterator<T>::operator ++ ( int ) {
+    if ( cursor != 0 ){
+        cursor = cursor->link;
+    }
+}
