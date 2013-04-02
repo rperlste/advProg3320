@@ -1,0 +1,225 @@
+/*
+ *	Robert Perlstein
+ *	101130094
+ *	Advanced Programming
+ *	Spring 2013
+ *	HW2 - Matrices, Template Specialization, and Shortest Path 
+ *	
+ *	This program computes the shortest path on a graph G=(V,U),
+ *	from vertices u to v using the properties of an
+ *	adjacency matrix and matrix multiplication.
+ *	The user provides a specifically formatted input
+ *	file that represents the graph by its vertex set,
+ *	and edge set. Using this data, a specialized
+ *	template class, Matrix<int> is initialized, and the
+ *	operations required to determine the shortest path
+ *	are performeed on this object.
+ */
+
+template <typename Type>
+Matrix<Type>::Matrix(	const size_type& rows,
+						const size_type& cols ){
+	rowSize = rows;
+	colSize = cols;
+	matrix = new Type*[rowSize];
+	for( int i = 0; i < colSize; ++ i ){
+		matrix[i] = new Type[colSize];
+	}
+}
+
+template <typename Type>
+Matrix<Type>::Matrix( const Matrix<Type>& matrix ){
+	this->rowSize = matrix.getRowSize();
+	this->colSize = matrix.getColSize();
+	this->matrix = new Type*[rowSize];
+	for( int i = 0; i < colSize; ++ i ){
+		this->matrix[i] = new Type[colSize];
+	}
+	for( int i = 0; i < this->rowSize; ++ i ){
+		for( int j = 0; j < this->colSize; ++ j ){
+			this->matrix[i][j] = matrix[i][j];
+		}
+	}
+}
+
+template <typename Type>
+Matrix<Type>::~Matrix(){
+	for( int i = 0; i < colSize; ++ i ){
+		delete[] matrix[i];
+	}
+	delete[] matrix;
+}
+
+template <typename Type>
+const typename Matrix<Type>::size_type Matrix<Type>::getRowSize() const {
+	return rowSize;
+}
+
+template <typename Type>
+const typename Matrix<Type>::size_type Matrix<Type>::getColSize() const {
+	return colSize;
+}
+
+template <typename Type>
+Matrix<Type> Matrix<Type>::operator * ( const Matrix<Type>& matrix2 ) const {
+	// Test for illegal matrix multiplication
+	if( rowSize != matrix2.getColSize() ){
+		std::cerr << "\n\nIllegal matrix multiplication: Cannot multiply "
+			<< rowSize << "X" << colSize << " * "
+			<< matrix2.getRowSize() << "X" << matrix2.getColSize();
+		return (*this);
+	}
+	const int MULT_CHAIN_LENGTH = rowSize;
+	const int rows = matrix2.getRowSize();
+	const int cols = colSize;
+	Matrix<Type> tempMatrix( rows, cols );
+
+	for( int i = 0; i < rows; ++ i ){
+		for( int j = 0; j < cols; ++ j ){
+			for( int k = 0; k < MULT_CHAIN_LENGTH; ++ k ){
+				tempMatrix[i][j] += matrix[k][j] * matrix2[i][k];
+			}
+		}
+	}
+
+	return tempMatrix;
+}
+
+template <typename Type>
+Matrix<Type>& Matrix<Type>::operator = ( const Matrix<Type>& matrix ){
+	this->rowSize = matrix.getRowSize();
+	this->colSize = matrix.getColSize();
+	this->matrix = new Type*[rowSize];
+	for( int i = 0; i < colSize; ++ i ){
+		this->matrix[i] = new Type[colSize];
+	}
+	for( int i = 0; i < this->rowSize; ++ i ){
+		for( int j = 0; j < this->colSize; ++ j ){
+			this->matrix[i][j] = matrix[i][j];
+		}
+	}
+
+	return *this;
+}
+
+template <typename Type>
+Type* Matrix<Type>::operator [] ( const int& index ) const {
+	return matrix[index];
+}
+
+template <typename Type>
+std::ostream& operator << (	std::ostream& out, const Matrix<Type>& matrix ) {
+	for( int i = 0; i < matrix.getColSize(); ++ i ){
+		for( int j = 0; j < matrix.getRowSize(); ++ j ){
+			if( j == 0 ) out << "| ";
+				out << matrix[i][j] << std::setw(3);
+		}
+		out << " |\n";
+	}
+	return out;
+}
+
+
+/*******************************************************************************
+				Specialization for int
+*******************************************************************************/
+
+inline Matrix<int>::Matrix(	const Matrix<int>::size_type& rows,
+						const Matrix<int>::size_type& cols ){
+	rowSize = rows;
+	colSize = cols;
+	matrix = new int*[rowSize];
+	for( int i = 0; i < colSize; ++ i ){
+		matrix[i] = new int[colSize];
+	}
+	for( int i = 0; i < rowSize; ++ i ){
+		for( int j = 0; j < colSize; ++ j ){
+			matrix[i][j] = 0;
+		}
+	}
+}
+
+inline Matrix<int>::Matrix( const Matrix<int>& matrix ){
+	this->rowSize = matrix.getRowSize();
+	this->colSize = matrix.getColSize();
+	this->matrix = new int*[rowSize];
+	for( int i = 0; i < colSize; ++ i ){
+		this->matrix[i] = new int[colSize];
+	}
+	for( int i = 0; i < this->rowSize; ++ i ){
+		for( int j = 0; j < this->colSize; ++ j ){
+			this->matrix[i][j] = matrix[i][j];
+		}
+	}
+}
+
+inline Matrix<int>::~Matrix(){
+	for( int i = 0; i < colSize; ++ i ){
+		delete[] matrix[i];
+	}
+	delete[] matrix;
+}
+
+inline const Matrix<int>::size_type Matrix<int>::getRowSize() const {
+	return rowSize;
+}
+
+inline const Matrix<int>::size_type Matrix<int>::getColSize() const {
+	return colSize;
+}
+
+inline Matrix<int> Matrix<int>::operator * ( const Matrix<int>& matrix2 ) const {
+	// Test for illegal matrix multiplication
+	if( rowSize != matrix2.getColSize() ){
+		std::cerr << "\n\nIllegal matrix multiplication: Cannot multiply "
+			<< rowSize << "X" << colSize << " * "
+			<< matrix2.getRowSize() << "X" << matrix2.getColSize();
+		return (*this);
+	}
+	const int MULT_CHAIN_LENGTH = rowSize;
+	const int rows = matrix2.getRowSize();
+	const int cols = colSize;
+	Matrix<int> tempMatrix( rows, cols );
+
+	for( int i = 0; i < rows; ++ i ){
+		for( int j = 0; j < cols; ++ j ){
+			for( int k = 0; k < MULT_CHAIN_LENGTH; ++ k ){
+				tempMatrix[i][j] += matrix[k][j] * matrix2[i][k];
+			}
+		}
+	}
+
+	return tempMatrix;
+}
+
+inline Matrix<int>& Matrix<int>::operator = ( const Matrix<int>& matrix ){
+	this->rowSize = matrix.getRowSize();
+	this->colSize = matrix.getColSize();
+	this->matrix = new int*[rowSize];
+	for( int i = 0; i < colSize; ++ i ){
+		this->matrix[i] = new int[colSize];
+	}
+	for( int i = 0; i < this->rowSize; ++ i ){
+		for( int j = 0; j < this->colSize; ++ j ){
+			this->matrix[i][j] = matrix[i][j];
+		}
+	}
+
+	return *this;
+}
+
+inline int* Matrix<int>::operator [] ( const int& index ) const {
+	return matrix[index];
+}
+
+inline std::ostream& operator << (	std::ostream& out, const Matrix<int>& matrix ) {
+	std::cout << std::endl;
+	for( int i = 0; i < matrix.getColSize(); ++ i ){
+		for( int j = 0; j < matrix.getRowSize(); ++ j ){
+			if( j == 0 ) out << "| ";
+				out << matrix[i][j] << std::setw(3);
+		}
+		out << " |\n";
+	}
+	return out;
+}
