@@ -1,7 +1,7 @@
 #include "pa3functions.h"
 
 void pa3functions::PrintGreeting(){
-    std::cout << "Greetings user. This is a simple program that demonstrates"
+    std::cout << "Greetings user! This is a simple program that demonstrates"
         << "\nan implementation of a forward linked list. A forward linked list"
         << "\nis a data structure that acts as a dynamically expanding array."
         << "\nIt consists of containers, called nodes, that store an individual"
@@ -27,6 +27,14 @@ void pa3functions::InstanceLists( fw_list<int>& list1, fw_list<int>& list2 ){
 
 void pa3functions::ManipulateList( fw_list<int>& list1, fw_list<int>& list2 ){
 
+    std::cout << "\nThe number of elements in list 1 is: " << list1.size()
+        << "\nThe number of elements in list 2 is: " << list2.size()
+        << "\n\nManipulations on the lists:"
+        << "\nlist1 += list2         // append list2 to list1"
+        << "\nlist1.erase( 49 );     // erase element == 49"
+        << "\nlist1.pop_front();     // pop the first element of the list"
+        << "\nlist1.push_front( 6 ); // push 6 onto the front of the list";
+
     // Manipulations
     list1 += list2;
     list1.erase( 49 );
@@ -34,7 +42,8 @@ void pa3functions::ManipulateList( fw_list<int>& list1, fw_list<int>& list2 ){
     list1.push_front( 6 );
 
     // Size
-    std::cout << "\nThe number of elements in the list is: " << list1.size() ;
+    std::cout << "\n\nThe new number of elements in the list1 is: " 
+        << list1.size();
 
     // Compute sum
     unsigned sum = 0;

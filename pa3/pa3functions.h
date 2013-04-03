@@ -16,8 +16,9 @@ POST:   Creates a list that contains the squares of the first 10
 
 void ManipulateList( fw_list<int>, fw_list<int> );
 PRE:    Lists have been instanced.
-POST:   Prints lists sizes. Concats lists. Prints sizes again. 
-        Averages list values. Prints the list with cout and <<.
+POST:   Prints lists sizes. Concats lists. manipualtes lists.
+        Prints sizes again. Averages list values. 
+        Prints the list with cout and <<.
 *******************************************************************************/
 
 namespace pa3functions {
