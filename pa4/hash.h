@@ -1,7 +1,27 @@
-/*******************************************************************************
- *  Robbie Perlstein
- *  Hash Table, Forward Iterator for Hash Table, Pair
- ******************************************************************************/
+/******************************************************************************
+ * Author:  Robbie Perlstein
+ * Date:    Apr 15, 2013
+ * SSID:    101130094
+ * Purpose: Assignment 4 - Hash Table and Club Dues
+            In this program, two input files are read, parsed, loaded into
+            hash tables, and then extracted for outputs via cout and output
+            to a file.
+  
+ ******************************************************************************
+ *  Hash Table, Forward Iterator for Hash Table, Bucket for Hash Table
+ 
+ *  The following provides a generic Hash Table implementation that uses
+    chaining to resolve conflicts.
+ 
+ *  Any key that is not a built-in type must provide it's own hashing function.
+ 
+ *  A bucket class is utilized as the container for the table, it consists of
+    a key and value pair, and a link to another bucket.
+ 
+ *  A forward iterator class exists for traversing the entire table and for
+    searching elements within the table. It bahaves like STL forward iterator.
+ *****************************************************************************/
+
 
 #ifndef _HASH_TABLE_H
 #define _HASH_TABLE_H
@@ -14,12 +34,22 @@
 template< typename key_type, typename mapped_type > class Bucket;
 template< typename key_type, typename mapped_type > class HashTableIterator;
 template< typename key_type, typename mapped_type > class HashTable;
-template< typename key_type, typename mapped_type > std::ostream& operator << 
+template< typename key_type, typename mapped_type > std::ostream& operator <<
     ( std::ostream&, const HashTable<key_type, mapped_type>& );
 
-/******************************************************************************/
-// Bucket class for HashTable.
-// It is the responsibilty of the hash table to delete any linked buckets
+
+/***** Bucket class for HashTable *********************************************
+ *  This class is a specialized container similar to std::pair, but is
+    specific for the HashTable<K,V> class.
+  
+****** PRE / POST CONDITIONS **************************************************
+
+Bucket( key_type key, mapped_type value, Bucket* next = 0 )
+PRE:    None
+POST:   Constructs a bucket. _next pointer is defaulted to 0 assuming there is
+        no link
+
+******************************************************************************/
 template< typename key_type, typename mapped_type >
 class Bucket {
 public:
@@ -29,18 +59,70 @@ public:
     mapped_type value;
     friend class HashTable<key_type,mapped_type>;
     friend class HashTableIterator<key_type,mapped_type>;
+    friend std::ostream& operator << ( std::ostream&,
+                                    const HashTable< key_type, mapped_type >& );
 private:
     Bucket* _next;
 };
 
-/******************************************************************************/
-// Forward iterator class for HashTable.
+/***** Forward iterator class for HashTable ***********************************
+ *  Specialized iterator class for the HashTable<K,V> class
+ *  Comes with the standard bells and whistles.
+  
+****** PRE / POST CONDITIONS **************************************************
+
+HashTableIterator();
+PRE:    None
+POST:   Creates an end iterator;
+
+HashTableIterator( bucket_type* cursor, hash_table* ht);
+PRE:    None
+POST:   Creates iterator starting at cursor's bucket. Uses ht's hashing algo
+        to iterate past any chained buckets. If cursor == 0, then creates an
+        end iterator. If the ht == 0, then the iterator won't traverse the 
+        table.
+
+HashTableIterator( const HashTableIterator<key_type,mapped_type>& );
+PRE:    None
+POST:   Copies the iterator
+
+bool operator == ( const HashTableIterator<key_type,mapped_type>& it ) const;
+PRE:    None
+POST:   Compares addresses of cursors, return true if same.
+
+bool operator != ( const HashTableIterator<key_type,mapped_type>& it ) const;
+PRE:    None
+POST:   Compares addresses of cursors, return false if same.
+
+
+bucket_type& operator * ()  const;
+PRE:    _cursor points at a bucket
+POST:   "Dereferences" the iterator, allowing element access.
+
+bucket_type* operator -> () const;
+PRE:    _cursor points at a bucket
+POST:   Accesses the bucket elements.
+
+void operator ++ ();
+PRE:    None
+POST:   Iterates forward until there are no more elements, then sets to end.
+
+void operator ++ ( int );
+PRE:    None
+POST:   Iterates forward until there are no more elements, then sets to end.
+
+void operator =  ( const HashTableIterator<key_type,mapped_type>& it );
+PRE:    None
+POST:   Copies the iterator.
+
+
+******************************************************************************/
 template< typename key_type, typename mapped_type >
 class HashTableIterator {
 
 public:
-    typedef typename Bucket< key_type, mapped_type > bucket_type;
-    typedef typename HashTable< key_type, mapped_type > hash_table;
+    typedef Bucket< key_type, mapped_type > bucket_type;
+    typedef HashTable< key_type, mapped_type > hash_table;
     typedef typename hash_table::size_type size_type;
 
     HashTableIterator();
@@ -49,7 +131,7 @@ public:
     ~HashTableIterator() {}
 
     // Comparison
-    bool operator == ( const HashTableIterator<key_type,mapped_type>& it ) const;
+    bool operator == ( const HashTableIterator<key_type,mapped_type>& it )const;
     bool operator != ( const HashTableIterator<key_type,mapped_type>& it ) const;
 
     // Element access
@@ -70,8 +152,124 @@ private:
     size_type                       _index;
 };
 
-/******************************************************************************/
-// Hash Table. Any non built in types must provide a hashing function.
+/***** Hash Table *************************************************************
+ *  Hash Table for all built in types and std::string.                        
+ *  Any non built in types must provide a hashing function.    
+
+******* PRE / POST CONDITIONS *************************************************
+
+HashTable( const HashTable< key_type, mapped_type >& );
+PRE:    None
+POST:   Copies the existing table.
+
+HashTable( size_type indexSize = SIZE );
+PRE:    None
+POST:   Creates an empty table with index size deaulted to SIZE;
+
+HashTable( hashing_funct_ptr hashPtr,
+            size_type indexSize = SIZE  );
+PRE:    None
+POST:   Creates an empty table with a hashPtr for the hashing algorithm
+        and size defaulted to SIZE
+
+HashTable( bucket_type,
+            size_type indexSize = SIZE );
+PRE:    None
+POST:   Creates a table with a bucket inserted and size defaulted to SIZE
+
+HashTable( bucket_type,
+            hashing_funct_ptr hashPtr,
+            size_type indexSize = SIZE );
+PRE:    None
+POST:   Creates a table with a bucket inserted, uses hashPtr for hashing if it
+        is not 0, and size defaults to SIZE
+
+HashTable( key_type,
+            mapped_type,
+            size_type indexSize = SIZE );
+PRE:    None
+POST:   Creates a bucket from the pair and inserts it into the table with
+        size defaulted to SIZE
+
+HashTable( key_type,
+            mapped_type,
+            hashing_funct_ptr hashPtr,
+            size_type indexSize = SIZE );
+PRE:    None
+POST:   Creates a bucket from the pair and inserts it into the table with
+        size defaulted to SIZE, hashPtr is used for hashing if it is not 0
+
+virtual ~HashTable();
+PRE:    None   
+POST:   Deletes all buckets associated with the table.
+
+inline bool empty() const
+PRE:    None
+POST:   Return true if there are no buckets in the table.
+
+inline size_type size() const
+PRE:    None
+POST:   Returns number of buckets
+
+inline size_type indexSize() const
+PRE:    None
+POST:   Returns size of the internal table array
+
+iterator begin ();
+PRE:    None
+POST:   Return an iterator to the first element of the table, not the first
+        or sorted insertion. Returns end iterator if table is empty.
+
+iterator end   ();
+PRE:    None
+POST:   Returns an iterator that points to 0
+
+mapped_type& operator [] ( const key_type& );
+PRE:    If the key references no value, then the value will call its
+        default constructor. Thus a key must have a constructor that
+        takes no arguments.
+POST:   Returns a reference to the value associated with the key, or creates
+        a new value. Can be assigned to.
+
+bucket_type& at ( const key_type& );
+PRE:    None
+POST:   Returns a pointer to the first bucket that contains the key, or 0 if
+        no key match is found.
+
+iterator find  ( const key_type& );
+PRE:    None
+POST:   Returns iterator to the first reference of the key, or end if no
+        match is found.
+
+size_type count ( const key_type& );
+PRE:    None
+POST:   Returns the number of key matches found in the entire table.
+
+void insert ( bucket_type );
+PRE:    None
+POST:   Inserts a bucket into the table.
+
+void insert ( const key_type&, const mapped_type& );
+PRE:    None
+POST:   Creates a bucket from the key/value pair and inserts into the table.
+
+size_type erase  ( const key_type& );
+PRE:    None
+POST:   Deletes any entries in the table that match the key, and returns the 
+        quantity of deletions that occurred.
+
+void clear  ();
+PRE:    None
+POST:   Deletes all buckets, resets the size to 0.
+
+float loadFactor ();
+PRE:    None
+POST:   Returns the ratio of buckets to the number of available table slots.
+
+
+
+******************************************************************************/
+
 template< typename key_type, typename mapped_type >
 class HashTable {
     // Constant members
@@ -82,34 +280,33 @@ class HashTable {
 public:
 
     typedef unsigned size_type;
-    typedef typename Bucket< key_type, mapped_type > bucket_type;
+    typedef Bucket< key_type, mapped_type > bucket_type;
     typedef HashTableIterator< key_type, mapped_type > iterator;
-    typedef unsigned (HashTable<key_type,mapped_type>::*hashing_funct_ptr)
-        ( const key_type& );
+    typedef unsigned (*hashing_funct_ptr)( const key_type& );
 
     // Construction
     HashTable( const HashTable< key_type, mapped_type >& );
-    HashTable( size_type indexSize = _DEFAULTS::SIZE );
-    HashTable( hashing_funct_ptr hashPtr, 
-               size_type indexSize = _DEFAULTS::SIZE  );
-    HashTable( bucket_type, 
-               size_type indexSize = _DEFAULTS::SIZE );
-    HashTable( bucket_type, 
-               hashing_funct_ptr hashPtr, 
-               size_type indexSize = _DEFAULTS::SIZE );
-    HashTable( key_type, 
-               mapped_type, 
-               size_type indexSize = _DEFAULTS::SIZE );
-    HashTable( key_type, 
-               mapped_type, 
-               hashing_funct_ptr hashPtr, 
-               size_type indexSize = _DEFAULTS::SIZE );
+    HashTable( size_type indexSize = SIZE );
+    HashTable( hashing_funct_ptr hashPtr,
+               size_type indexSize = SIZE  );
+    HashTable( bucket_type,
+               size_type indexSize = SIZE );
+    HashTable( bucket_type,
+               hashing_funct_ptr hashPtr,
+               size_type indexSize = SIZE );
+    HashTable( key_type,
+               mapped_type,
+               size_type indexSize = SIZE );
+    HashTable( key_type,
+               mapped_type,
+               hashing_funct_ptr hashPtr,
+               size_type indexSize = SIZE );
     virtual ~HashTable();
 
     // Capacity
-    inline bool             empty()    { return _size == 0; }
-    inline size_type        size()     { return _size; }
-    inline size_type        indexSize() { return _MAX_INDEX_SIZE; }
+    inline bool             empty() const     { return _size == 0; }
+    inline size_type        size() const      { return _size; }
+    inline size_type        indexSize() const { return _MAX_INDEX_SIZE; }
 
     // Iterator
     iterator                begin ();
@@ -135,10 +332,9 @@ public:
     float                   loadFactor ();
 
     // Friends
-    template< typename key_type, typename mapped_type > friend
-        std::ostream& operator << ( std::ostream&, 
-                                    const HashTable< key_type, mapped_type > );
-    friend class bucket_type;
+    friend std::ostream& operator << ( std::ostream&,
+                                    const HashTable< key_type, mapped_type >& );
+    friend class Bucket< key_type, mapped_type >;
     friend class HashTableIterator< key_type, mapped_type >;
 
 private:
@@ -146,7 +342,6 @@ private:
     size_type               _size;
     size_type               _MAX_INDEX_SIZE;
     bucket_type**           _table;
-
 
     // Hash function
     hashing_funct_ptr       _hashPtr;
@@ -160,402 +355,6 @@ private:
 };
 
 
-/******************************************************************************/
-// Forward Table Iterator defitinion
-
-template< typename key_type, typename mapped_type > 
-HashTableIterator<key_type,mapped_type>::HashTableIterator(){
-    _cursor = 0;
-    _hash_table = 0;
-    _index = 0;
-}
-
-template< typename key_type, typename mapped_type > 
-HashTableIterator<key_type,mapped_type>::HashTableIterator( bucket_type* cursor, 
-                                                            hash_table* ht ){
-    _cursor = cursor;
-    _hash_table = ht;
-    _index = (ht != 0) ? _hash_table->_bucketIndex(_cursor->key) : 0;
-}
-
-template< typename key_type, typename mapped_type > 
-HashTableIterator<key_type,mapped_type>::HashTableIterator( 
-    const HashTableIterator<key_type,mapped_type>& it ){
-    this->_cursor = it._cursor;
-    this->_hash_table = it._hash_table;
-    this->_index = it._index;
-}
-
-template< typename key_type, typename mapped_type > 
-void HashTableIterator<key_type,mapped_type>::operator = ( 
-    const HashTableIterator<key_type,mapped_type>& it ){
-    this->_cursor = it._cursor;
-    this->_hash_table = it._hash_table;
-    this->_index = it._index;
-
-}
-
-template< typename key_type, typename mapped_type > 
-bool HashTableIterator<key_type,mapped_type>::operator == ( 
-    const HashTableIterator<key_type,mapped_type>& it ) const {
-    return ( this->_cursor == it._cursor );
-}
-
-template< typename key_type, typename mapped_type > 
-bool HashTableIterator<key_type,mapped_type>::operator != ( 
-    const HashTableIterator<key_type,mapped_type>& it ) const {
-    return ( this->_cursor != it._cursor );
-}
-
-template< typename key_type, typename mapped_type > 
-typename HashTableIterator<key_type,mapped_type>::bucket_type& 
-HashTableIterator<key_type,mapped_type>::operator * () const {
-    return *_cursor;
-}
-
-template< typename key_type, typename mapped_type > 
-typename HashTableIterator<key_type,mapped_type>::bucket_type* 
-HashTableIterator<key_type,mapped_type>::operator -> () const {
-    return _cursor;
-}
-
-template< typename key_type, typename mapped_type > 
-void HashTableIterator<key_type,mapped_type>::operator ++ () {
-    if ( _cursor != 0 ){
-        _cursor = _cursor->_next;
-        if ( _cursor == 0 && _hash_table != 0 ){
-            while( _cursor == 0 && _index < _hash_table->indexSize()-1 ){
-                ++ _index;
-                _cursor = _hash_table->_table[_index];
-            }
-        }
-    }
-}
-
-template< typename key_type, typename mapped_type > 
-void HashTableIterator<key_type,mapped_type>::operator ++ ( int ) {
-    if ( _cursor != 0 ){
-        _cursor = _cursor->_next;
-        if ( _cursor == 0 && _hash_table != 0 ){
-            while( _cursor == 0 && _index < _hash_table->_MAX_INDEX_SIZE-1 ){
-                ++ _index;
-                _cursor = _hash_table->_table[_index];
-            }
-        }
-    }
-}
-
-/*****************************************************************************/
-/******* HashTable<key_type,mapped_type> definition *************************/
-
-
-template< typename key_type, typename mapped_type > 
-HashTable<key_type,mapped_type>::
-HashTable( const HashTable< key_type, mapped_type >& copy ){
-    _size = copy._size;
-    _MAX_INDEX_SIZE = copy._MAX_INDEX_SIZE;
-    _table = new bucket_type*[_MAX_INDEX_SIZE];
-    _hashPtr = 0;
-    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
-        bucket_type* copyBucket = copy._table[i];
-        if( copyBucket == 0 ){
-            _table[i] = 0;
-        } else {
-            _table[i] = new bucket_type( copyBucket->key, copyBucket->value );
-            bucket_type* currBucket = _table[i];
-            copyBucket = copyBucket->_next;
-            while( copyBucket != 0 ){
-                currBucket->_next = new bucket_type( copyBucket->key, 
-                                                     copyBucket->value );
-                currBucket = currBucket->_next;
-                copyBucket = copyBucket->_next;
-            }
-        }
-    } 
-}
-
-template< typename key_type, typename mapped_type > 
-HashTable<key_type,mapped_type>::
-HashTable( size_type indexSize ){
-    _size = 0;
-    _MAX_INDEX_SIZE = indexSize;
-    _table = new bucket_type*[_MAX_INDEX_SIZE];
-    _hashPtr = 0;
-    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
-        _table[i] = 0;
-    }
-}
-
-template< typename key_type, typename mapped_type > 
-HashTable<key_type,mapped_type>::
-HashTable( hashing_funct_ptr hashPtr, 
-           size_type indexSize  ){
-    _size = 0;
-    _MAX_INDEX_SIZE = indexSize;
-    _table = new bucket_type*[_MAX_INDEX_SIZE];
-    _hashPtr = 0;
-    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
-        _table[i] = 0;
-    }
-}
-
-template< typename key_type, typename mapped_type > 
-HashTable<key_type,mapped_type>::
-HashTable( bucket_type bckt, unsigned indexSize ){
-    _size = 1;
-    _MAX_INDEX_SIZE = indexSize;
-    _table = new bucket_type*[_MAX_INDEX_SIZE];
-    _hashPtr = 0;
-    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
-        _table[i] = 0;
-    }
-    _table[_bucketIndex(bckt.key)] = new bucket_type(bckt.key, bckt.value);
-}
-
-
-template< typename key_type, typename mapped_type > 
-HashTable<key_type,mapped_type>::
-    HashTable( bucket_type bckt, hashing_funct_ptr hashPtr, size_type indexSize ){
-    _size = 1;
-    _MAX_INDEX_SIZE = indexSize;
-    _table = new bucket_type*[_MAX_INDEX_SIZE];
-    _hashPtr = 0;
-    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
-        _table[i] = 0;
-    }
-    _table[_bucketIndex(bckt.key)] = new bucket_type(bckt.key, bckt.value);
-}
-
-template< typename key_type, typename mapped_type > 
-HashTable<key_type,mapped_type>::
-HashTable( key_type key, mapped_type value, size_type indexSize ){
-    _size = 1;
-    _MAX_INDEX_SIZE = indexSize;
-    _table = new bucket_type*[_MAX_INDEX_SIZE];
-    _hashPtr = 0;
-    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
-        _table[i] = 0;
-    }
-    _table[_bucketIndex(key)] = new bucket_type(key,value);
-}
-
-template< typename key_type, typename mapped_type > 
-HashTable<key_type,mapped_type>::
-HashTable( key_type key, 
-            mapped_type value, 
-            hashing_funct_ptr hashPtr, 
-            size_type indexSize ){
-    _size = 1;
-    _MAX_INDEX_SIZE = indexSize;
-    _table = new bucket_type*[_MAX_INDEX_SIZE];
-    _hashPtr = 0;
-    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
-        _table[i] = 0;
-    }
-    _table[_bucketIndex(key)] = new bucket_type(key,value);
-}
-
-template< typename key_type, typename mapped_type > 
-HashTable<key_type,mapped_type>::
-~HashTable(){
-    bucket_type* bucketPtr;
-    bucket_type* toDel;
-    for( int i = 0; i < _MAX_INDEX_SIZE; ++ i ){
-        bucketPtr = _table[i];
-        toDel = bucketPtr;
-        while( bucketPtr != 0 ){
-            bucketPtr = bucketPtr->_next;
-            delete toDel;
-            toDel = bucketPtr;
-        }
-    }
-}
-/*
-
-// Iterator
-//    iterator                begin ();
-//    iterator                end   ();
-*/
-// Element access
-template< typename key_type, typename mapped_type > 
-typename mapped_type& 
-HashTable<key_type,mapped_type>::operator [] ( const key_type& key ){
-    bucket_type* bucket = _table[_bucketIndex(key)];
-    while( bucket != 0 && bucket->_next != 0 && bucket->key != key ){
-        bucket = bucket->_next;
-    }
-    if( bucket == 0 ){
-        _table[_bucketIndex(key)] = new bucket_type(key,mapped_type());
-        bucket =  _table[_bucketIndex(key)];
-        ++ _size;
-    } 
-    else if ( bucket->key != key ){
-        bucket->_next = new bucket_type(key,mapped_type());
-        bucket = bucket->_next;
-        ++ _size;
-    }
-    return bucket->value;
-}
-
-template< typename key_type, typename mapped_type > 
-typename HashTable<key_type,mapped_type>::bucket_type& 
-HashTable<key_type,mapped_type>::at ( const key_type& key ){
-    bucket_type* bucket = _table[_bucketIndex(key)];
-    while( bucket->_next != 0 && bucket->key != key ){
-        bucket = bucket->_next;
-    }
-    if( bucket->key != key ){
-        bucket->_next = new bucket_type(key,mapped_type());
-        bucket = bucket->_next;
-    }
-    return *bucket;
-}
-/*
-// Element lookup
-//    iterator                find  ( const key_type& );
-*/
-template< typename key_type, typename mapped_type > 
-typename HashTable<key_type,mapped_type>::size_type 
-HashTable<key_type,mapped_type>::count ( const key_type& key ){
-    bucket_type* bucket = _table[_bucketIndex(key)];
-    size_type count = 0;
-    while( bucket != 0 ){
-        if( bucket->key == key ) 
-            ++ count;
-        bucket = bucket->_next;
-    }
-    
-    return count;
-}
-
-
-// Modifiers
-template< typename key_type, typename mapped_type > 
-void HashTable<key_type,mapped_type>::insert ( bucket_type bucket ){
-    insert( bucket.key, bucket.value );
-}
-
-template< typename key_type, typename mapped_type > 
-void HashTable<key_type,mapped_type>::insert ( const key_type& key, 
-                                               const mapped_type& value ){
-    if( _table[_bucketIndex(key)] == 0 ){
-        _table[_bucketIndex(key)] = new bucket_type( key, value );
-    } else {
-        bucket_type* currBucket = _table[_bucketIndex(key)];
-        while( currBucket->_next != 0 ){
-            currBucket = currBucket->_next;
-        }
-        currBucket->_next = new bucket_type( key, value );
-    }
-    ++ _size;
-}
-
-template< typename key_type, typename mapped_type > 
-typename HashTable<key_type,mapped_type>::size_type 
-HashTable<key_type,mapped_type>::erase ( const key_type& ){
-    bucket_type* currBucket = _table[_bucketIndex(key)];
-    bucket_type* toDel = currBucket;
-    size_type count = 0;
-    while( currBucket != 0 ){
-        if( currBucket->key == key ) {
-            ++ count;
-            currBucket = currBucket->next;
-            delete toDel;
-        } else {
-            currBucket = currBucket->next;
-        }
-        toDel = currBucket;
-    }
-    
-    return count;
-}
-
-template< typename key_type, typename mapped_type > 
-void HashTable<key_type,mapped_type>::clear(){
-    bucket_type* bucketPtr;
-    bucket_type* toDel;
-    for( int i = 0; i < _MAX_INDEX_SIZE; ++ i ){
-        bucketPtr = _table[i];
-        toDel = bucketPtr;
-        while( bucketPtr != 0 ){
-            bucketPtr = bucketPtr->_next;
-            delete toDel;
-            toDel = bucketPtr;
-        }
-    }
-    _size = 0;
-    _bucketCount = 0;
-}
-
-// Hash policy
-template< typename key_type, typename mapped_type > 
-float HashTable<key_type,mapped_type>::loadFactor (){
-    return ( float(_size) / float(_MAX_INDEX_SIZE) );
-}
-/*
-// Friends
-template< typename key_type, typename mapped_type >
-std::ostream& HashTable<key_type,mapped_type>::
-operator << ( std::ostream&, const HashTable< key_type, mapped_type > ){
-
-}
-*/
-
-template< typename key_type, typename mapped_type >
-typename HashTable<key_type,mapped_type>::size_type 
-HashTable<key_type,mapped_type>::_hashKey( int key ){
-    return (size_type)key;
-}
-
-template< typename key_type, typename mapped_type >
-typename HashTable<key_type,mapped_type>::size_type 
-HashTable<key_type,mapped_type>::_hashKey( float key ){
-    return (size_type)key;
-}
-
-template< typename key_type, typename mapped_type >
-typename HashTable<key_type,mapped_type>::size_type 
-HashTable<key_type,mapped_type>::_hashKey( char key ){
-    return (size_type)key;
-}
-
-template< typename key_type, typename mapped_type >
-typename HashTable<key_type,mapped_type>::size_type 
-HashTable<key_type,mapped_type>::_hashKey( const char* key ){
-    size_type keyValue = 0;
-    for( int i = 0; key[i] != 0; ++i ){
-        keyValue += (size_type)key[i];
-    }
-    return keyValue;
-}
-
-template< typename key_type, typename mapped_type >
-typename HashTable<key_type,mapped_type>::size_type 
-HashTable<key_type,mapped_type>::_hashKey( std::string key ){
-    size_type keyValue = 0;
-    for( int i = 0; i < key.size(); ++i ){
-        keyValue += (size_type)key[i];
-    }
-    return keyValue;
-}
-
-template< typename key_type, typename mapped_type >
-typename HashTable<key_type,mapped_type>::size_type 
-HashTable<key_type,mapped_type>::_hash( const key_type& key ){
-    size_type hashValue = _hashKey( key );
-    return (( _DEFAULTS::HASH_MULT * hashValue + _DEFAULTS::HASH_ADD) 
-                 % _DEFAULTS::HASH_MOD ); 
-}
-
-template< typename key_type, typename mapped_type >
-typename HashTable<key_type,mapped_type>::size_type 
-HashTable<key_type,mapped_type>::_bucketIndex( const key_type& key ){
-    if( _hashPtr == 0 ){
-        return _hash( key ) % _MAX_INDEX_SIZE;
-    } 
-    //else {
-    //    return this->*_hashPtr(key) % _MAX_INDEX_SIZE;
-    //}
-}
+#include "hash.tem"
 
 #endif

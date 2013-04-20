@@ -3,6 +3,7 @@
 #include "hash.h"
 
 #include <cassert>
+#include <sstream>
 
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -142,19 +143,21 @@ namespace pa4_test
     TEST_CLASS(TestHashTable)
     {
     public:
+
+        unsigned foo( const char& ){ return 1; }
         
         TEST_METHOD(HT_Ctor)
         {
             HashTable<char,int> ht;
         }
 
-        TEST_METHOD(HT_BucketCtor)
+        TEST_METHOD(HT_CtorBucket)
         {
             Bucket<char,int> b(char1,int1);
-            HashTable<char,int> ht(b);
+            HashTable<char,int> ht1(b);
         }
 
-        TEST_METHOD(HT_KeyValCtor)
+        TEST_METHOD(HT_CtorKeyVal)
         {
             HashTable<float,float> ht( float1, float2 );
         }
@@ -183,12 +186,34 @@ namespace pa4_test
 
         TEST_METHOD(HT_begin)
         {
-            Assert::IsTrue(0);
+            HashTable<int,int> ht(10);
+            HashTableIterator<int,int> it = ht.begin();
+            Bucket<int,int> b1(int1,int2);
+            Bucket<int,int> b2(int2,int1);
+            
+            ht.insert(b1);
+            ht.insert(b2);
+
+            it = ht.begin();
+            ++ it;
+            ++ it;
         }
 
         TEST_METHOD(HT_clear)
         {
-            Assert::IsTrue(0);
+            Bucket<int,int> b1(int1,int2);
+            Bucket<int,int> b2(int2,int1);
+            HashTable<int,int> ht;
+            ht.insert(b1);
+            ht.insert(b1);
+            ht.insert(b1);
+            ht.insert(b2);
+            ht.insert(b2);
+
+            Assert::AreEqual( unsigned(5), ht.size() );
+            ht.clear();
+            Assert::AreEqual( unsigned(0), ht.size() );
+            assert( ht.begin() == ht.end() );
         }
 
         TEST_METHOD(HT_count)
@@ -214,7 +239,17 @@ namespace pa4_test
 
         TEST_METHOD(HT_end)
         {
-            Assert::IsTrue(0);
+            HashTable<int,int> ht(10);
+            HashTableIterator<int,int> it = ht.begin();
+            assert( it == ht.end() );
+            Bucket<int,int> b1(int1,int2);
+            Bucket<int,int> b2(int2,int1);
+            
+            ht.insert(b1);
+            ht.insert(b2);
+
+            it = ht.begin();
+            assert( it != ht.end() );
         }
 
         TEST_METHOD(HT_erase)
@@ -232,7 +267,24 @@ namespace pa4_test
 
         TEST_METHOD(HT_find)
         {
-            Assert::IsTrue(0);
+            Bucket<int,int> b1(int1,int2);
+            Bucket<int,int> b2(int2,int1);
+            HashTable<int,int> ht;
+            ht.insert(b1);
+            ht.insert(b1);
+            ht.insert(b1);
+            ht.insert(b2);
+            ht.insert(b2);
+            
+            HashTableIterator<int,int> it = ht.find( int1 );
+            Assert::AreEqual( int1, it->key );
+            Assert::AreEqual( int2, it->value );
+            ++ it;
+            Assert::AreEqual( int1, it->key );
+            Assert::AreEqual( int2, it->value );
+            ++ it;
+            Assert::AreEqual( int1, it->key );
+            Assert::AreEqual( int2, it->value );
         }
 
         TEST_METHOD(HT_insert)
@@ -276,7 +328,18 @@ namespace pa4_test
 
         TEST_METHOD(HT_OperatorOstream)
         {
-            Assert::IsTrue(0);
+            Bucket<int,int> b1(int1,int2);
+            Bucket<int,int> b2(int2,int1);
+            HashTable<int,int> ht;
+            ht.insert(b1);
+            ht.insert(b1);
+            ht.insert(b1);
+            ht.insert(b2);
+            ht.insert(b2);
+
+            std::stringstream ss;
+            ss << ht;
+            Logger::WriteMessage( ss.str().c_str() );
         }
     };
 }

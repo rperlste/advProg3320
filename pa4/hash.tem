@@ -1,0 +1,429 @@
+/******************************************************************************/
+// Forward Table Iterator defitinion
+
+template< typename key_type, typename mapped_type >
+HashTableIterator<key_type,mapped_type>::HashTableIterator(){
+    _cursor = 0;
+    _hash_table = 0;
+    _index = 0;
+}
+
+template< typename key_type, typename mapped_type >
+HashTableIterator<key_type,mapped_type>::HashTableIterator( bucket_type* cursor,
+                                                            hash_table* ht ){
+    _cursor = cursor;
+    _hash_table = ht;
+    _index = (ht != 0 && cursor != 0)
+        ? _hash_table->_bucketIndex(_cursor->key)
+        : 0;
+}
+
+template< typename key_type, typename mapped_type >
+HashTableIterator<key_type,mapped_type>::HashTableIterator(
+    const HashTableIterator<key_type,mapped_type>& it ){
+    this->_cursor = it._cursor;
+    this->_hash_table = it._hash_table;
+    this->_index = it._index;
+}
+
+template< typename key_type, typename mapped_type >
+void HashTableIterator<key_type,mapped_type>::operator = (
+    const HashTableIterator<key_type,mapped_type>& it ){
+    this->_cursor = it._cursor;
+    this->_hash_table = it._hash_table;
+    this->_index = it._index;
+
+}
+
+template< typename key_type, typename mapped_type >
+bool HashTableIterator<key_type,mapped_type>::operator == (
+    const HashTableIterator<key_type,mapped_type>& it ) const {
+    return ( this->_cursor == it._cursor );
+}
+
+template< typename key_type, typename mapped_type >
+bool HashTableIterator<key_type,mapped_type>::operator != (
+    const HashTableIterator<key_type,mapped_type>& it ) const {
+    return ( this->_cursor != it._cursor );
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTableIterator<key_type,mapped_type>::bucket_type&
+HashTableIterator<key_type,mapped_type>::operator * () const {
+    return *_cursor;
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTableIterator<key_type,mapped_type>::bucket_type*
+HashTableIterator<key_type,mapped_type>::operator -> () const {
+    return _cursor;
+}
+
+template< typename key_type, typename mapped_type >
+void HashTableIterator<key_type,mapped_type>::operator ++ () {
+    if ( _cursor != 0 ){
+        _cursor = _cursor->_next;
+        if ( _cursor == 0 && _hash_table != 0 ){
+            while( _cursor == 0 && _index < _hash_table->indexSize()-1 ){
+                ++ _index;
+                _cursor = _hash_table->_table[_index];
+            }
+        }
+    }
+}
+
+template< typename key_type, typename mapped_type >
+void HashTableIterator<key_type,mapped_type>::operator ++ ( int ) {
+    if ( _cursor != 0 ){
+        _cursor = _cursor->_next;
+        if ( _cursor == 0 && _hash_table != 0 ){
+            while( _cursor == 0 && _index < _hash_table->_MAX_INDEX_SIZE-1 ){
+                ++ _index;
+                _cursor = _hash_table->_table[_index];
+            }
+        }
+    }
+}
+
+/*****************************************************************************/
+/******* HashTable<key_type,mapped_type> definition *************************/
+
+
+template< typename key_type, typename mapped_type >
+HashTable<key_type,mapped_type>::
+HashTable( const HashTable< key_type, mapped_type >& copy ){
+    _size = copy._size;
+    _MAX_INDEX_SIZE = copy._MAX_INDEX_SIZE;
+    _table = new bucket_type*[_MAX_INDEX_SIZE];
+    _hashPtr = copy._hashPtr;
+    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
+        bucket_type* copyBucket = copy._table[i];
+        if( copyBucket == 0 ){
+            _table[i] = 0;
+        } else {
+            _table[i] = new bucket_type( copyBucket->key, copyBucket->value );
+            bucket_type* currBucket = _table[i];
+            copyBucket = copyBucket->_next;
+            while( copyBucket != 0 ){
+                currBucket->_next = new bucket_type( copyBucket->key,
+                                                     copyBucket->value );
+                currBucket = currBucket->_next;
+                copyBucket = copyBucket->_next;
+            }
+        }
+    }
+}
+
+template< typename key_type, typename mapped_type >
+HashTable<key_type,mapped_type>::
+HashTable( size_type indexSize ){
+    _size = 0;
+    _MAX_INDEX_SIZE = indexSize;
+    _table = new bucket_type*[_MAX_INDEX_SIZE];
+    _hashPtr = 0;
+    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
+        _table[i] = 0;
+    }
+}
+
+template< typename key_type, typename mapped_type >
+HashTable<key_type,mapped_type>::
+HashTable( hashing_funct_ptr hashPtr,
+           size_type indexSize  ){
+    _size = 0;
+    _MAX_INDEX_SIZE = indexSize;
+    _table = new bucket_type*[_MAX_INDEX_SIZE];
+    _hashPtr = 0;
+    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
+        _table[i] = 0;
+    }
+}
+
+template< typename key_type, typename mapped_type >
+HashTable<key_type,mapped_type>::
+HashTable( bucket_type bckt, unsigned indexSize ){
+    _size = 1;
+    _MAX_INDEX_SIZE = indexSize;
+    _table = new bucket_type*[_MAX_INDEX_SIZE];
+    _hashPtr = 0;
+    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
+        _table[i] = 0;
+    }
+    _table[_bucketIndex(bckt.key)] = new bucket_type(bckt.key, bckt.value);
+}
+
+
+template< typename key_type, typename mapped_type >
+HashTable<key_type,mapped_type>::
+HashTable( bucket_type bckt,
+            hashing_funct_ptr hashPtr,
+            size_type indexSize ){
+    _size = 1;
+    _MAX_INDEX_SIZE = indexSize;
+    _table = new bucket_type*[_MAX_INDEX_SIZE];
+    _hashPtr = hashPtr;
+    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
+        _table[i] = 0;
+    }
+    _table[_bucketIndex(bckt.key)] = new bucket_type(bckt.key, bckt.value);
+}
+
+template< typename key_type, typename mapped_type >
+HashTable<key_type,mapped_type>::
+HashTable( key_type key, mapped_type value, size_type indexSize ){
+    _size = 1;
+    _MAX_INDEX_SIZE = indexSize;
+    _table = new bucket_type*[_MAX_INDEX_SIZE];
+    _hashPtr = 0;
+    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
+        _table[i] = 0;
+    }
+    _table[_bucketIndex(key)] = new bucket_type(key,value);
+}
+
+template< typename key_type, typename mapped_type >
+HashTable<key_type,mapped_type>::
+HashTable( key_type key,
+            mapped_type value,
+            hashing_funct_ptr hashPtr,
+            size_type indexSize ){
+    _size = 1;
+    _MAX_INDEX_SIZE = indexSize;
+    _table = new bucket_type*[_MAX_INDEX_SIZE];
+    _hashPtr = hashPtr;
+    for( unsigned i = 0; i < _MAX_INDEX_SIZE; ++ i ){
+        _table[i] = 0;
+    }
+    _table[_bucketIndex(key)] = new bucket_type(key,value);
+}
+
+template< typename key_type, typename mapped_type >
+HashTable<key_type,mapped_type>::
+~HashTable(){
+    bucket_type* bucketPtr;
+    bucket_type* toDel;
+    for( int i = 0; i < _MAX_INDEX_SIZE; ++ i ){
+        bucketPtr = _table[i];
+        toDel = bucketPtr;
+        while( bucketPtr != 0 ){
+            bucketPtr = bucketPtr->_next;
+            delete toDel;
+            toDel = bucketPtr;
+        }
+    }
+}
+
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::iterator
+HashTable<key_type,mapped_type>::begin (){
+    bucket_type* bucketPtr = 0;
+    for( int i = 0;
+         i < _MAX_INDEX_SIZE && bucketPtr == 0;
+         ++ i ){
+            bucketPtr = _table[i];
+    }
+    return iterator( bucketPtr, this );
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::iterator
+HashTable<key_type,mapped_type>::end (){
+    return iterator( 0, this );
+}
+
+template< typename key_type, typename mapped_type >
+mapped_type&
+HashTable<key_type,mapped_type>::operator [] ( const key_type& key ){
+    bucket_type* bucket = _table[_bucketIndex(key)];
+    while( bucket != 0 && bucket->_next != 0 && bucket->key != key ){
+        bucket = bucket->_next;
+    }
+    if( bucket == 0 ){
+        _table[_bucketIndex(key)] = new bucket_type(key,mapped_type());
+        bucket =  _table[_bucketIndex(key)];
+        ++ _size;
+    }
+    else if ( bucket->key != key ){
+        bucket->_next = new bucket_type(key,mapped_type());
+        bucket = bucket->_next;
+        ++ _size;
+    }
+    return bucket->value;
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::bucket_type&
+HashTable<key_type,mapped_type>::at ( const key_type& key ){
+    bucket_type* bucket = _table[_bucketIndex(key)];
+    while(  bucket != 0 && bucket->key != key ){
+        bucket = bucket->_next;
+    }
+    return *bucket;
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::iterator
+HashTable<key_type,mapped_type>::find  ( const key_type& key ){
+    bucket_type* bucket = _table[_bucketIndex(key)];
+    while(  bucket != 0 && bucket->key != key ){
+        bucket = bucket->_next;
+    }
+
+    return iterator( bucket, this );
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::size_type
+HashTable<key_type,mapped_type>::count ( const key_type& key ){
+    bucket_type* bucket = _table[_bucketIndex(key)];
+    size_type count = 0;
+    while( bucket != 0 ){
+        if( bucket->key == key )
+            ++ count;
+        bucket = bucket->_next;
+    }
+
+    return count;
+}
+
+
+// Modifiers
+template< typename key_type, typename mapped_type >
+void HashTable<key_type,mapped_type>::insert ( bucket_type bucket ){
+    insert( bucket.key, bucket.value );
+}
+
+template< typename key_type, typename mapped_type >
+void HashTable<key_type,mapped_type>::insert ( const key_type& key,
+                                               const mapped_type& value ){
+    if( _table[_bucketIndex(key)] == 0 ){
+        _table[_bucketIndex(key)] = new bucket_type( key, value );
+    } else {
+        bucket_type* currBucket = _table[_bucketIndex(key)];
+        while( currBucket->_next != 0 ){
+            currBucket = currBucket->_next;
+        }
+        currBucket->_next = new bucket_type( key, value );
+    }
+    ++ _size;
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::size_type
+HashTable<key_type,mapped_type>::erase ( const key_type& key ){
+    bucket_type* currBucket = _table[_bucketIndex(key)];
+    bucket_type* toDel = currBucket;
+    size_type count = 0;
+    while( currBucket != 0 ){
+        if( currBucket->key == key ) {
+            ++ count;
+            currBucket = currBucket->next;
+            delete toDel;
+        } else {
+            currBucket = currBucket->next;
+        }
+        toDel = currBucket;
+    }
+
+    return count;
+}
+
+template< typename key_type, typename mapped_type >
+void HashTable<key_type,mapped_type>::clear(){
+    bucket_type* bucketPtr;
+    bucket_type* toDel;
+    for( int i = 0; i < _MAX_INDEX_SIZE; ++ i ){
+        bucketPtr = _table[i];
+        _table[i] = 0;
+        toDel = bucketPtr;
+        while( bucketPtr != 0 ){
+            bucketPtr = bucketPtr->_next;
+            delete toDel;
+            toDel = bucketPtr;
+        }
+    }
+    _size = 0;
+}
+
+// Hash policy
+template< typename key_type, typename mapped_type >
+float HashTable<key_type,mapped_type>::loadFactor (){
+    return ( float(_size) / float(_MAX_INDEX_SIZE) );
+}
+
+// Friends
+template< typename key_type, typename mapped_type >
+std::ostream& operator << ( std::ostream& out,
+                            const HashTable<key_type,mapped_type>& ht  ){
+    Bucket<key_type,mapped_type>* bucketPtr = 0;
+    out << "{";
+    for( unsigned i = 0;
+        i < ht.indexSize();
+         ++ i ){
+        bucketPtr = ht._table[i];
+        while( bucketPtr != 0 ){
+            out << " (" << bucketPtr->key << "," << bucketPtr->value << ")";
+            bucketPtr = bucketPtr->_next;
+        }
+    }
+    out << " }";
+    return out;
+}
+
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::size_type
+HashTable<key_type,mapped_type>::_hashKey( int key ){
+    return (size_type)key;
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::size_type
+HashTable<key_type,mapped_type>::_hashKey( float key ){
+    return (size_type)key;
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::size_type
+HashTable<key_type,mapped_type>::_hashKey( char key ){
+    return (size_type)key;
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::size_type
+HashTable<key_type,mapped_type>::_hashKey( const char* key ){
+    size_type keyValue = 0;
+    for( int i = 0; key[i] != 0; ++i ){
+        keyValue += (size_type)key[i];
+    }
+    return keyValue;
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::size_type
+HashTable<key_type,mapped_type>::_hashKey( std::string key ){
+    size_type keyValue = 0;
+    for( int i = 0; i < key.size(); ++i ){
+        keyValue += (size_type)key[i];
+    }
+    return keyValue;
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::size_type
+HashTable<key_type,mapped_type>::_hash( const key_type& key ){
+    size_type hashValue = _hashKey( key );
+    return (( HASH_MULT * hashValue + HASH_ADD)
+                 % HASH_MOD );
+}
+
+template< typename key_type, typename mapped_type >
+typename HashTable<key_type,mapped_type>::size_type
+HashTable<key_type,mapped_type>::_bucketIndex( const key_type& key ){
+    if( _hashPtr == 0 ){
+        return _hash( key ) % _MAX_INDEX_SIZE;
+    } else {
+        return (_hashPtr)( key ) % _MAX_INDEX_SIZE;
+    }
+}
