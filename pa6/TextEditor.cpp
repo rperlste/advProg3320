@@ -5,8 +5,11 @@ TextEditor::TextEditor( const std::string& fileName ){
 }
 
 bool TextEditor::read(){ 
-    std::ifstream fin( _filename );
+
+    std::ifstream fin( _filename.c_str() );
     _textBuffer.clear();
+
+    // Load the file contents into the text buffer.
     if( fin ){
         std::string line;
         while( !fin.eof() ){
@@ -14,11 +17,13 @@ bool TextEditor::read(){
             _textBuffer.push_back( line );
         }
         fin.close();
-        // Test for empty file.
+
+        // Ignore empty last line.
         if( line == "" ){
             _textBuffer.pop_back();
         }
         return true;
+    // Error opening file.
     } else {
         fin.close();
         return false;
@@ -26,7 +31,7 @@ bool TextEditor::read(){
 }
 
 bool TextEditor::write(){ 
-    std::ofstream fin( _filename );
+    std::ofstream fin( _filename.c_str() );
     for( std::list<std::string>::iterator it = _textBuffer.begin();
         it != _textBuffer.end();
         ++ it ){
@@ -39,10 +44,13 @@ bool TextEditor::write(){
 bool TextEditor::insertLine( unsigned pos, const std::string& line ){ 
     std::list<std::string>::iterator it = _textBuffer.begin();
     unsigned currentPos = 1;
+
+    // Find insertion point
     while( it != _textBuffer.end() && currentPos < pos ){
         ++ it;
         ++ currentPos;
     }
+    // Insert or throw exception if there is an allocation error.
     try{
         _textBuffer.insert( it, line );
         return true;
@@ -54,10 +62,12 @@ bool TextEditor::insertLine( unsigned pos, const std::string& line ){
 bool TextEditor::deleteLine( unsigned pos ){ 
     std::list<std::string>::iterator it = _textBuffer.begin();
     unsigned currentPos = 1;
+     // Find deletion point
     while( it != _textBuffer.end() && currentPos < pos ){
         ++ it;
         ++ currentPos;
     }
+    // Only delete if the position exits
     if( currentPos == pos && it != _textBuffer.end() ){
         _textBuffer.erase( it );
         return true;
@@ -70,6 +80,7 @@ bool TextEditor::replace( const std::string& find, const std::string& replace ){
     for( std::list<std::string>::iterator it = _textBuffer.begin();
         it != _textBuffer.end();
         ++ it ){
+            // Find the location of a matching string
             unsigned pos = (*it).find( find );
             if( pos != std::string::npos ){
                 (*it).replace( pos, find.size(), replace );

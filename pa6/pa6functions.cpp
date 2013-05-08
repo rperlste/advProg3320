@@ -26,18 +26,22 @@ void pa6functions::PrintTitle(){
 
 }
 
-void pa6functions::RunTextEditor( const std::string& fileName ){
+void pa6functions::RunTextEditor( const std::string& filename ){
 
-    TestValidFilename( fileName );
-    TextEditor textEditor( fileName );
+    TestValidFilename( filename );
+    TextEditor textEditor( filename );
     RunMenu( textEditor );
 
 }
 
-void pa6functions::TestValidFilename( const std::string& fileName ){
-    if( fileName.size() == 0 ){
+void pa6functions::TestValidFilename( const std::string& filename ){
+    if( filename.size() == 0 ){
+        throw pa6exception( "Invalid filename." );
+    } else if( !isalnum(filename[0]) ){
         throw pa6exception( "Invalid filename." );
     }
+
+
 }
 
 void pa6functions::RunMenu( TextEditor& textEditor ){
@@ -46,32 +50,36 @@ void pa6functions::RunMenu( TextEditor& textEditor ){
 
     while( run ){
         PrintMenu();
+        // Get menu choice and take approriate action
         GetInput( choice );
-       
-        switch( choice ){
-            case 'R': case 'r': 
-                Read( textEditor ); break;
-            case 'W': case'w':
-                Write( textEditor ); break;
-            case 'I': case 'i':
-                Insert( textEditor ); break;
-            case 'D': case 'd':
-                Delete( textEditor ); break;
-            case 'F': case 'f':
-                FindAndReplace( textEditor ); break;
-            case 'L': case 'l':
-                LineCount( textEditor ); break;
-            case 'V': case 'v':
-                View( textEditor ); break;
-            case 'C': case 'c':
-                Clear( textEditor ); break;
-            case 'X' : case 'x': 
-                run = false;
-        }
-
+        run = ExecuteMenuChoice( textEditor, choice );
         if( run )
             PressEnterToContinue(2);
     }
+}
+
+bool pa6functions::ExecuteMenuChoice( TextEditor& textEditor, char choice ){
+    switch( choice ){
+        case 'R': case 'r': 
+            Read( textEditor ); break;
+        case 'W': case'w':
+            Write( textEditor ); break;
+        case 'I': case 'i':
+            Insert( textEditor ); break;
+        case 'D': case 'd':
+            Delete( textEditor ); break;
+        case 'F': case 'f':
+            FindAndReplace( textEditor ); break;
+        case 'L': case 'l':
+            LineCount( textEditor ); break;
+        case 'V': case 'v':
+            View( textEditor ); break;
+        case 'C': case 'c':
+            Clear( textEditor ); break;
+        case 'X' : case 'x': 
+            return false;
+    }
+    return true;
 }
 
 void pa6functions::PrintMenu(){
@@ -209,5 +217,5 @@ void pa6functions::GetFilename( std::string& filename ){
 void pa6functions::PressEnterToContinue( unsigned newlineCount ){
     std::cout << std::string( newlineCount, '\n' );
     std::cout << "Press ENTER to continue... ";
-    std::cin.ignore( std::numeric_limits <std::streamsize> ::max(), '\n' );
+    std::cin.ignore( INT_MAX, '\n' );
 }
